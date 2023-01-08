@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "compound-embedding"
+version = "0.1.0"
+description = "This library provides a chemical embeddings used by ersilia models."
+authors = ["Ersilia Developers"]
+license = "GPLv3"
+
+[tool.poetry.dependencies]
+
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+flake8 = "^5.0.4"
+black = "^22.6.0"
+darglint = "^1.8.1"
+
+[tool.poetry.scripts]
+crux = "compound-embedding.cli.main:main"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
