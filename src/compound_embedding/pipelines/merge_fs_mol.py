@@ -28,7 +28,7 @@ def get_all_paths(dir_path: Path) -> List[Path]:
     return files
 
 
-def read_as_jsonl(path, error_handling: Optional[Callable[[str, Exception], None]]=None) -> Iterable[Any]:
+def read_as_jsonl(path, error_handling: Optional[Callable[[str, Exception], None]] = None) -> Iterable[Any]:
     """
     Iterate through JSONL files. See http://jsonlines.org/ for more.
 
@@ -94,7 +94,7 @@ def gen_ref_smiles_to_grover_map(ref_csvs=[]) -> Dict:
     return ref_map
 
 
-def parallel_on_paths(file_paths: List[Path], func: Callable[[List[Path], Any], None], args: List[Any] = []) -> None:
+def parallel_on_paths(file_paths: List[Path], func: Callable[[List[Path], Any], None], args: List[Any] = [], jobs: int = None) -> None:
     """Execute function in parallel on multiple threads.
 
     Args:
@@ -102,13 +102,14 @@ def parallel_on_paths(file_paths: List[Path], func: Callable[[List[Path], Any], 
         func (Callable[List[Path], Any]): Processing function.
         args (List[Any]): List of additional args to the processing function.
     """
+    jobs = jobs or cpu_count()
     file_path_len = len(file_paths)
     slices = []
-    for i in range(0, file_path_len, file_path_len // cpu_count()):
-        slices.append(slice(i, i + file_path_len // cpu_count()))
+    for i in range(0, file_path_len, file_path_len // jobs):
+        slices.append(slice(i, i + file_path_len // jobs))
 
     file_path_chunks = [file_paths[s] for s in slices]
-    Parallel(n_jobs=cpu_count())(
+    Parallel(n_jobs=jobs)(
         delayed(func)(chunk, *args)
         for chunk in tqdm(file_path_chunks)
     )
