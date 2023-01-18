@@ -2,14 +2,12 @@ import logging
 import os
 import sys
 from dataclasses import dataclass
-from functools import partial
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
 from pyprojroot import here as project_root
 
-from compound_embedding.fs_mol.models.abstract_torch_fsmol_model import linear_warmup
 from compound_embedding.fs_mol.data import FSMolDataset, FSMolTaskSample, DataFold
 from compound_embedding.fs_mol.data.protonet import (
     ProtoNetBatch,
@@ -17,7 +15,10 @@ from compound_embedding.fs_mol.data.protonet import (
     get_protonet_batcher,
     task_sample_to_pn_task_sample,
 )
-from compound_embedding.fs_mol.models.protonet import PrototypicalNetwork, PrototypicalNetworkConfig
+from compound_embedding.fs_mol.models.protonet import (
+    PrototypicalNetwork,
+    PrototypicalNetworkConfig,
+)
 from compound_embedding.fs_mol.models.abstract_torch_fsmol_model import MetricType
 from compound_embedding.fs_mol.utils.metrics import (
     BinaryEvalMetrics,
@@ -27,7 +28,10 @@ from compound_embedding.fs_mol.utils.metrics import (
 )
 from compound_embedding.fs_mol.utils.metric_logger import MetricLogger
 from compound_embedding.fs_mol.utils.torch_utils import torchify
-from compound_embedding.fs_mol.utils.test_utils import eval_model, FSMolTaskSampleEvalResults
+from compound_embedding.fs_mol.utils.test_utils import (
+    eval_model,
+    FSMolTaskSampleEvalResults,
+)
 
 
 sys.path.insert(0, str(project_root()))
@@ -77,15 +81,20 @@ def run_on_batches(
         if train:
             batch_loss.backward()
         total_loss += (
-            batch_loss.detach() * batch_features.num_query_samples * num_gradient_accumulation_steps
+            batch_loss.detach()
+            * batch_features.num_query_samples
+            * num_gradient_accumulation_steps
         )
         total_num_samples += batch_features.num_query_samples
-        batch_preds = torch.nn.functional.softmax(batch_logits, dim=1).detach().cpu().numpy()
+        batch_preds = (
+            torch.nn.functional.softmax(batch_logits, dim=1).detach().cpu().numpy()
+        )
         task_preds.append(batch_preds[:, 1])
         task_labels.append(batch_labels.detach().cpu().numpy())
 
     metrics = compute_binary_task_metrics(
-        predictions=np.concatenate(task_preds, axis=0), labels=np.concatenate(task_labels, axis=0)
+        predictions=np.concatenate(task_preds, axis=0),
+        labels=np.concatenate(task_labels, axis=0),
     )
 
     # we will report loss per sample as before.
@@ -220,50 +229,6 @@ class PrototypicalNetworkTrainer(PrototypicalNetwork):
             for name, param in optimizer_weights.items():
                 self.optimizer.state_dict()[name].copy_(param)
 
-    def load_model_gnn_weights(
-        self,
-        path: str,
-        device: Optional[torch.device] = None,
-    ):
-        pretrained_state_dict = torch.load(path, map_location=device)
-
-        gnn_model_state_dict = pretrained_state_dict["model_state_dict"]
-        our_state_dict = self.state_dict()
-
-        # Load parameters (names specialised to GNNMultitask model), but also collect
-        # parameters for GNN parts / rest, so that we can create a LR warmup schedule:
-        gnn_params, other_params = [], []
-        gnn_feature_extractor_param_name = "graph_feature_extractor."
-        for our_name, our_param in our_state_dict.items():
-            if (
-                our_name.startswith(gnn_feature_extractor_param_name)
-                and "final_norm_layer" not in our_name
-            ):
-                generic_name = our_name[len(gnn_feature_extractor_param_name) :]
-                if generic_name.startswith("readout_layer."):
-                    generic_name = f"readout{generic_name[len('readout_layer'):]}"
-                our_param.copy_(gnn_model_state_dict[generic_name])
-                logger.debug(f"I: Loaded parameter {our_name} from {generic_name} in {path}.")
-                gnn_params.append(our_param)
-            else:
-                logger.debug(f"I: Not loading parameter {our_name}.")
-                other_params.append(our_param)
-
-        self.optimizer = torch.optim.Adam(
-            [
-                {"params": other_params, "lr": self.config.learning_rate},
-                {"params": gnn_params, "lr": self.config.learning_rate / 10},
-            ],
-        )
-
-        self.lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
-            optimizer=self.optimizer,
-            lr_lambda=[
-                partial(linear_warmup, warmup_steps=0),  # for all params
-                partial(linear_warmup, warmup_steps=100),  # for loaded GNN params
-            ],
-        )
-
     @classmethod
     def build_from_model_file(
         cls,
@@ -288,7 +253,9 @@ class PrototypicalNetworkTrainer(PrototypicalNetwork):
         )
         return model
 
-    def train_loop(self, out_dir: str, dataset: FSMolDataset, device: torch.device, aml_run=None):
+    def train_loop(
+        self, out_dir: str, dataset: FSMolDataset, device: torch.device, aml_run=None
+    ):
         self.save_model(os.path.join(out_dir, "best_validation.pt"))
 
         train_task_sample_iterator = iter(
@@ -331,7 +298,9 @@ class PrototypicalNetworkTrainer(PrototypicalNetwork):
 
             # Now do a training step - run_on_batches will have accumulated gradients
             if self.config.clip_value is not None:
-                torch.nn.utils.clip_grad_norm_(self.parameters(), self.config.clip_value)
+                torch.nn.utils.clip_grad_norm_(
+                    self.parameters(), self.config.clip_value
+                )
             self.optimizer.step()
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
@@ -346,7 +315,9 @@ class PrototypicalNetworkTrainer(PrototypicalNetwork):
             )
 
             if step % self.config.validate_every_num_steps == 0:
-                valid_metric = validate_by_finetuning_on_tasks(self, dataset, aml_run=aml_run)
+                valid_metric = validate_by_finetuning_on_tasks(
+                    self, dataset, aml_run=aml_run
+                )
 
                 if aml_run:
                     # printing some measure of loss on all validation tasks.
@@ -362,7 +333,9 @@ class PrototypicalNetworkTrainer(PrototypicalNetwork):
                     best_validation_avg_prec = valid_metric
                     model_path = os.path.join(out_dir, "best_validation.pt")
                     self.save_model(model_path)
-                    logger.info(f"Updated {model_path} to new best model at train step {step}")
+                    logger.info(
+                        f"Updated {model_path} to new best model at train step {step}"
+                    )
 
         # save the fully trained model
         self.save_model(os.path.join(out_dir, "fully_trained.pt"))
