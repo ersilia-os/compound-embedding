@@ -3,6 +3,7 @@
 import click
 
 from compound_embedding.cli.generate import gen
+from compound_embedding.cli.train import train
 
 from .. import __version__
 
@@ -15,3 +16,4 @@ def main() -> None:
 
 
 main.add_command(gen)
+main.add_command(train)
