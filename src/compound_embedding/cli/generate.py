@@ -15,19 +15,27 @@ from compound_embedding.pipelines.merge_fs_mol import (
 @click.command()
 @click.option("--inp", help="Input directory path", required=True)
 @click.option("--out", help="Output directory path", required=True)
-def grover(inp: str, out: str) -> None:
+@click.option("--seq", is_flag=True, help="Run pipeline sequentially")
+def grover(inp: str, out: str, seq: bool) -> None:
     """Generate grover dataset."""
     file_paths = get_all_paths(Path(inp))
-    parallel_on_paths(file_paths, gen_grover_merged_files, [Path(out)])
+    if seq:
+        gen_grover_merged_files(file_paths, Path(out))
+    else:
+        parallel_on_paths(file_paths, gen_grover_merged_files, [Path(out)])
 
 
 @click.command()
 @click.option("--inp", help="Input directory path", required=True)
 @click.option("--out", help="Output directory path", required=True)
-def mordred(inp: str, out: str) -> None:
+@click.option("--seq", is_flag=True, help="Run pipeline sequentially")
+def mordred(inp: str, out: str, seq: bool) -> None:
     """Generate mordred dataset."""
     file_paths = get_all_paths(Path(inp))
-    parallel_on_paths(file_paths, gen_mordred_merged_files, [Path(out)])
+    if seq:
+        gen_mordred_merged_files(file_paths, Path(out))
+    else:
+        parallel_on_paths(file_paths, gen_mordred_merged_files, [Path(out)])
 
 
 @click.group()
