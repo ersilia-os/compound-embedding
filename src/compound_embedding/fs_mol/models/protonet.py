@@ -8,16 +8,22 @@ import torch.nn as nn
 from compound_embedding.fs_mol.data.protonet import ProtoNetBatch
 
 
-GRAPH_EMBEDDING_DIM = 5000
+GROVER_EMBEDDING_DIM = 5000
 FINGERPRINT_DIM = 2048
-PHYS_CHEM_DESCRIPTORS_DIM = 42
+MORDRED_DESCRIPTORS_DIM = 1826
 
 
 @dataclass(frozen=True)
 class PrototypicalNetworkConfig:
     # Model configuration:
     used_features: Literal[
-        "gnn", "ecfp", "pc-descs", "gnn+ecfp", "ecfp+fc", "pc-descs+fc", "gnn+ecfp+pc-descs+fc"
+        "gnn",
+        "ecfp",
+        "pc-descs",
+        "gnn+ecfp",
+        "ecfp+fc",
+        "pc-descs+fc",
+        "gnn+ecfp+pc-descs+fc",
     ] = "gnn+ecfp+fc"
     distance_metric: Literal["mahalanobis", "euclidean"] = "mahalanobis"
 
@@ -33,17 +39,20 @@ class PrototypicalNetwork(nn.Module):
         if self.use_fc:
             # Determine dimension:
             fc_in_dim = 0
-            if "gnn" in self.config.used_features:
-                fc_in_dim += GRAPH_EMBEDDING_DIM
+            if "grover" in self.config.used_features:
+                fc_in_dim += GROVER_EMBEDDING_DIM
             if "ecfp" in self.config.used_features:
                 fc_in_dim += FINGERPRINT_DIM
-            if "pc-descs" in self.config.used_features:
-                fc_in_dim += PHYS_CHEM_DESCRIPTORS_DIM
+            if "mordred" in self.config.used_features:
+                fc_in_dim += MORDRED_DESCRIPTORS_DIM
 
             self.fc = nn.Sequential(
-                nn.Linear(fc_in_dim, 1024),
+                # fc_dim_full = 8874
+                nn.Linear(fc_in_dim, 4096),
                 nn.ReLU(),
-                nn.Linear(1024, 512),
+                nn.Linear(4096, 2048),
+                nn.ReLU(),
+                nn.Linear(2048, 1024),
             )
 
     @property
@@ -54,15 +63,15 @@ class PrototypicalNetwork(nn.Module):
         support_features: List[torch.Tensor] = []
         query_features: List[torch.Tensor] = []
 
-        if "gnn" in self.config.used_features:
-            support_features.append(input_batch.support_features.graph)
-            query_features.append(input_batch.query_features.graph)
+        if "grover" in self.config.used_features:
+            support_features.append(input_batch.support_features.grover)
+            query_features.append(input_batch.query_features.grover)
         if "ecfp" in self.config.used_features:
             support_features.append(input_batch.support_features.fingerprints)
             query_features.append(input_batch.query_features.fingerprints)
-        if "pc-descs" in self.config.used_features:
-            support_features.append(input_batch.support_features.descriptors)
-            query_features.append(input_batch.query_features.descriptors)
+        if "mordred" in self.config.used_features:
+            support_features.append(input_batch.support_features.mordred)
+            query_features.append(input_batch.query_features.mordred)
 
         support_features_flat = torch.cat(support_features, dim=1)
         query_features_flat = torch.cat(query_features, dim=1)
@@ -72,7 +81,10 @@ class PrototypicalNetwork(nn.Module):
             query_features_flat = self.fc(query_features_flat)
 
         if self.config.distance_metric == "mahalanobis":
-            class_means, class_precision_matrices = self.compute_class_means_and_precisions(
+            (
+                class_means,
+                class_precision_matrices,
+            ) = self.compute_class_means_and_precisions(
                 support_features_flat, input_batch.support_labels
             )
 
@@ -94,7 +106,10 @@ class PrototypicalNetwork(nn.Module):
                 number_of_targets, number_of_classes, repeated_difference.size(1)
             ).permute(1, 0, 2)
             first_half = torch.matmul(repeated_difference, class_precision_matrices)
-            logits = torch.mul(first_half, repeated_difference).sum(dim=2).transpose(1, 0) * -1
+            logits = (
+                torch.mul(first_half, repeated_difference).sum(dim=2).transpose(1, 0)
+                * -1
+            )
         else:  # euclidean
             logits = self._protonets_euclidean_classifier(
                 support_features_flat,
@@ -112,7 +127,9 @@ class PrototypicalNetwork(nn.Module):
         task_covariance_estimate = self._estimate_cov(features)
         for c in torch.unique(labels):
             # filter out feature vectors which have class c
-            class_features = torch.index_select(features, 0, self._extract_class_indices(labels, c))
+            class_features = torch.index_select(
+                features, 0, self._extract_class_indices(labels, c)
+            )
             # mean pooling examples to form class means
             means.append(torch.mean(class_features, dim=0, keepdim=True).squeeze())
             lambda_k_tau = class_features.size(0) / (class_features.size(0) + 1)
@@ -122,7 +139,9 @@ class PrototypicalNetwork(nn.Module):
                     (lambda_k_tau * self._estimate_cov(class_features))
                     + ((1 - lambda_k_tau) * task_covariance_estimate)
                     + 0.1
-                    * torch.eye(class_features.size(1), class_features.size(1)).to(self.device)
+                    * torch.eye(class_features.size(1), class_features.size(1)).to(
+                        self.device
+                    )
                 )
             )
 
@@ -174,9 +193,15 @@ class PrototypicalNetwork(nn.Module):
         return factor * examples.matmul(examples_t).squeeze()
 
     @staticmethod
-    def _extract_class_indices(labels: torch.Tensor, which_class: torch.Tensor) -> torch.Tensor:
-        class_mask = torch.eq(labels, which_class)  # binary mask of labels equal to which_class
-        class_mask_indices = torch.nonzero(class_mask)  # indices of labels equal to which class
+    def _extract_class_indices(
+        labels: torch.Tensor, which_class: torch.Tensor
+    ) -> torch.Tensor:
+        class_mask = torch.eq(
+            labels, which_class
+        )  # binary mask of labels equal to which_class
+        class_mask_indices = torch.nonzero(
+            class_mask
+        )  # indices of labels equal to which class
         return torch.reshape(class_mask_indices, (-1,))  # reshape to be a 1D vector
 
     @staticmethod
@@ -189,7 +214,9 @@ class PrototypicalNetwork(nn.Module):
         query_features: torch.Tensor,
         support_labels: torch.Tensor,
     ) -> torch.Tensor:
-        class_prototypes = self._compute_class_prototypes(support_features, support_labels)
+        class_prototypes = self._compute_class_prototypes(
+            support_features, support_labels
+        )
         logits = self._euclidean_distances(query_features, class_prototypes)
         return logits
 
@@ -213,8 +240,12 @@ class PrototypicalNetwork(nn.Module):
 
         distances = (
             (
-                query_features.unsqueeze(1).expand(num_query_features, num_prototypes, -1)
-                - class_prototypes.unsqueeze(0).expand(num_query_features, num_prototypes, -1)
+                query_features.unsqueeze(1).expand(
+                    num_query_features, num_prototypes, -1
+                )
+                - class_prototypes.unsqueeze(0).expand(
+                    num_query_features, num_prototypes, -1
+                )
             )
             .pow(2)
             .sum(dim=2)
