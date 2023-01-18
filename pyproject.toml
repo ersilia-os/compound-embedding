@@ -15,7 +15,7 @@ black = "^22.6.0"
 darglint = "^1.8.1"
 
 [tool.poetry.scripts]
-crux = "compound-embedding.cli.main:main"
+crux = "compound_embedding.cli.main:main"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
