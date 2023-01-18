@@ -28,24 +28,26 @@ def get_all_paths(dir_path: Path) -> List[Path]:
     return files
 
 
-def read_as_jsonl(self, error_handling: Optional[Callable[[str, Exception], None]] = None) -> Iterable[Any]:
+def read_as_jsonl(path, error_handling: Optional[Callable[[str, Exception], None]]=None) -> Iterable[Any]:
     """
-    Parse JSONL files. See http://jsonlines.org/ for more.
+    Iterate through JSONL files. See http://jsonlines.org/ for more.
 
-    Args:
-        error_handling: a callable that receives the original line and the exception object and takes
+    :param error_handling: a callable that receives the original line and the exception object and takes
             over how parse error handling should happen.
-    Returns:
-        Iterable[Any]: a iterator of the parsed objects of each line.
+    :return: a iterator of the parsed objects of each line.
     """
-    for line in self.read_as_text().splitlines():
-        try:
-            yield json.loads(line, object_pairs_hook=OrderedDict)
-        except Exception as e:
-            if error_handling is None:
-                raise
-            else:
-                error_handling(line, e)
+    fh = gzip.open(path, mode='rt', encoding='utf-8')
+    try:
+        for line in fh:
+            try:
+                yield json.loads(line, object_pairs_hook=OrderedDict)
+            except Exception as e:
+                if error_handling is None:
+                    raise
+                else:
+                    error_handling(line, e)
+    finally:
+        fh.close()
 
 
 def write_jsonl_gz_data(file_name: str, data: Iterable[Dict[str, Any]], len_data: int = None) -> int:
@@ -69,10 +71,10 @@ def write_jsonl_gz_data(file_name: str, data: Iterable[Dict[str, Any]], len_data
 
 def save_element(element: Dict[str, Any], data_fh) -> None:
     ele = dict(element)
-    ele.pop("mol", None)
-    ele.pop("fingerprints_vect", None)
-    if "fingerprints" in ele:
-        ele["fingerprints"] = ele["fingerprints"].tolist()
+    if "grover" in ele:
+        ele["grover"] = ele["grover"].tolist()
+    if "mordred" in ele:
+        ele["mordred"] = ele["mordred"].tolist()
     data_fh.write(json.dumps(ele) + "\n")
 
 
@@ -92,7 +94,7 @@ def gen_ref_smiles_to_grover_map(ref_csvs=[]) -> Dict:
     return ref_map
 
 
-def parallel_on_paths(file_paths: List[Path], func: Callable[[List[Path], Any]], args: List[Any] = []) -> None:
+def parallel_on_paths(file_paths: List[Path], func: Callable[[List[Path], Any], None], args: List[Any] = []) -> None:
     """Execute function in parallel on multiple threads.
 
     Args:
@@ -138,7 +140,7 @@ def gen_grover_merged_files(task_file_paths: List[Path], output_dir: Path) -> No
         grover_fps = grover_model.transform(sample_smiles)
 
         # Update samples with grover data
-        for i, sample in enumerate(sample_smiles):
+        for i, sample in enumerate(samples):
             sample["grover"] = grover_fps[i]
             modified_data.append(sample)
 
