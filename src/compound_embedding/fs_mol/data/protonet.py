@@ -26,6 +26,8 @@ logger = logging.getLogger(__name__)
 class MoleculeProtoNetFeatures(FSMolBatch):
     fingerprints: np.ndarray  # [num_samples, FP_DIM]
     descriptors: np.ndarray  # [num_samples, DESC_DIM]
+    grover: Optional[np.ndarray]
+    mordred: Optional[np.ndarray]
 
 
 @dataclass(frozen=True)
@@ -57,19 +59,29 @@ class FeaturisedPNTaskSample:
 def batcher_init_fn(batch_data: Dict[str, Any]):
     batch_data["fingerprints"] = []
     batch_data["descriptors"] = []
+    batch_data["grover"] = []
+    batch_data["mordred"] = []
 
 
-def batcher_add_sample_fn(batch_data: Dict[str, Any], sample_id: int, sample: MoleculeDatapoint):
+def batcher_add_sample_fn(
+    batch_data: Dict[str, Any], sample_id: int, sample: MoleculeDatapoint
+):
     batch_data["fingerprints"].append(sample.get_fingerprint())
     batch_data["descriptors"].append(sample.get_descriptors())
+    batch_data["grover"].append(sample.get_grover())
+    batch_data["mordred"].append(sample.get_mordred())
 
 
-def batcher_finalizer_fn(batch_data: Dict[str, Any]) -> Tuple[MoleculeProtoNetFeatures, np.ndarray]:
+def batcher_finalizer_fn(
+    batch_data: Dict[str, Any]
+) -> Tuple[MoleculeProtoNetFeatures, np.ndarray]:
     plain_batch = fsmol_batch_finalizer(batch_data)
     return (
         MoleculeProtoNetFeatures(
             fingerprints=np.stack(batch_data["fingerprints"], axis=0),
             descriptors=np.stack(batch_data["descriptors"], axis=0),
+            grover=np.stack(batch_data["grover"], axis=0),
+            mordred=np.stack(batch_data["mordred"], axis=0),
             **dataclasses.asdict(plain_batch),
         ),
         np.stack(batch_data["bool_labels"], axis=0),
@@ -77,7 +89,8 @@ def batcher_finalizer_fn(batch_data: Dict[str, Any]) -> Tuple[MoleculeProtoNetFe
 
 
 def task_sample_to_pn_task_sample(
-    task_sample: FSMolTaskSample, batcher: FSMolBatcher[MoleculeProtoNetFeatures, np.ndarray]
+    task_sample: FSMolTaskSample,
+    batcher: FSMolBatcher[MoleculeProtoNetFeatures, np.ndarray],
 ) -> FeaturisedPNTaskSample:
     support_batches = list(batcher.batch(task_sample.train_samples))
     if len(support_batches) > 1:
@@ -108,7 +121,9 @@ def task_sample_to_pn_task_sample(
     return FeaturisedPNTaskSample(
         task_name=task_sample.name,
         num_support_samples=len(task_sample.train_samples),
-        num_positive_support_samples=sum(s.bool_label for s in task_sample.train_samples),
+        num_positive_support_samples=sum(
+            s.bool_label for s in task_sample.train_samples
+        ),
         num_query_samples=len(task_sample.test_samples),
         num_positive_query_samples=sum(s.bool_label for s in task_sample.test_samples),
         batches=sample_batches,
