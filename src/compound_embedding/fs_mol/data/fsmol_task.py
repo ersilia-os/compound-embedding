@@ -46,6 +46,8 @@ class MoleculeDatapoint:
             threshold.
         fingerprint: optional ECFP (Extended-Connectivity Fingerprint) for the molecule.
         descriptors: optional phys-chem descriptors for the molecule.
+        grover: optional grover fingerprints for the molecule.
+        mordred: optional mordred descriptors for the molecule.
     """
 
     task_name: str
@@ -55,6 +57,8 @@ class MoleculeDatapoint:
     bool_label: bool
     fingerprint: Optional[np.ndarray]
     descriptors: Optional[np.ndarray]
+    grover: Optional[np.ndarray]
+    mordred: Optional[np.ndarray]
 
     def get_fingerprint(self) -> np.ndarray:
         if self.fingerprint is not None:
@@ -79,6 +83,18 @@ class MoleculeDatapoint:
             for _, descr_calc_fn in Descriptors._descList:
                 descriptors.append(descr_calc_fn(mol))
             return np.array(descriptors)
+
+    def get_grover(self) -> np.ndarray:
+        if self.grover is not None:
+            return self.grover
+        else:
+            raise Exception("Grover descriptors are unavailable for the molecule")
+
+    def get_mordred(self) -> np.ndarray:
+        if self.mordred is not None:
+            return self.mordred
+        else:
+            raise Exception("Mordred descriptors are unavailable for the molecule")
 
 
 @dataclass(frozen=True)
@@ -115,6 +131,18 @@ class FSMolTask:
             else:
                 descriptors = None
 
+            grover = raw_sample.get("grover")
+            if grover is not None:
+                grover: Optional[np.ndarray] = np.array(grover, dtype=np.float32)
+            else:
+                grover = None
+
+            mordred = raw_sample.get("mordred")
+            if mordred is not None:
+                mordred: Optional[np.ndarray] = np.array(mordred, dtype=np.float32)
+            else:
+                mordred = None
+
             adjacency_lists = []
             for adj_list in graph_data["adjacency_lists"]:
                 if len(adj_list) > 0:
@@ -138,6 +166,8 @@ class FSMolTask:
                             for edge_feats in graph_data.get("edge_features") or []
                         ],
                     ),
+                    grover=grover,
+                    mordred=mordred
                 )
             )
 
