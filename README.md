@@ -1,6 +1,6 @@
 # Ersilia compound embedding
 
-This library provides a chemical embeddings used by ersilia models.
+This library provides bioactivity aware chemical embeddings for small molecules.
 
 ## Quick start guide
 
