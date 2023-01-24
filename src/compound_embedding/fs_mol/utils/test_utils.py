@@ -11,17 +11,17 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from dpu_utils.utils.richpath import RichPath
 
-from fs_mol.data.fsmol_dataset import DataFold, FSMolDataset
-from fs_mol.data.fsmol_task import FSMolTask, FSMolTaskSample
-from fs_mol.data.fsmol_task_sampler import (
+from compound_embedding.fs_mol.data.fsmol_dataset import DataFold, FSMolDataset
+from compound_embedding.fs_mol.data.fsmol_task import FSMolTask, FSMolTaskSample
+from compound_embedding.fs_mol.data.fsmol_task_sampler import (
     DatasetClassTooSmallException,
     DatasetTooSmallException,
     FoldTooSmallException,
     StratifiedTaskSampler,
 )
-from fs_mol.utils.cli_utils import set_seed
-from fs_mol.utils.logging import prefix_log_msgs, set_up_logging
-from fs_mol.utils.metrics import BinaryEvalMetrics
+from compound_embedding.fs_mol.utils.cli_utils import set_seed
+from compound_embedding.fs_mol.utils.logging import prefix_log_msgs, set_up_logging
+from compound_embedding.fs_mol.utils.metrics import BinaryEvalMetrics
 
 
 logger = logging.getLogger(__name__)

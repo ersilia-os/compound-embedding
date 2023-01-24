@@ -6,7 +6,7 @@ import logging
 import numpy as np
 from dpu_utils.utils.richpath import RichPath
 
-from fs_mol.data import (
+from compound_embedding.fs_mol.data import (
     DataFold,
     FSMolDataset,
     FSMolTask,
