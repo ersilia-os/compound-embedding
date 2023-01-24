@@ -22,7 +22,7 @@ def grover(inp: str, out: str, seq: bool) -> None:
     if seq:
         gen_grover_merged_files(file_paths, Path(out))
     else:
-        parallel_on_paths(file_paths, gen_grover_merged_files, [Path(out)], 9)
+        parallel_on_paths(file_paths, gen_grover_merged_files, [Path(out)], 12)
 
 
 @click.command()
@@ -35,7 +35,7 @@ def mordred(inp: str, out: str, seq: bool) -> None:
     if seq:
         gen_mordred_merged_files(file_paths, Path(out))
     else:
-        parallel_on_paths(file_paths, gen_mordred_merged_files, [Path(out)], 9)
+        parallel_on_paths(file_paths, gen_mordred_merged_files, [Path(out)], 12)
 
 
 @click.group()

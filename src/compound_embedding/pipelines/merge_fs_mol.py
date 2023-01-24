@@ -130,6 +130,10 @@ def gen_grover_merged_files(task_file_paths: List[Path], output_dir: Path) -> No
     os.makedirs(output_dir.joinpath("valid"), exist_ok=True)
     grover_model = Featurizer()
     for path in task_file_paths:
+        output_file_path = output_dir.joinpath(*path.parts[-2:])
+        if output_file_path.is_file():
+            print(f"Path: {output_file_path} | Already processed")
+            continue
         samples = []
         sample_smiles = []
         modified_data = []
