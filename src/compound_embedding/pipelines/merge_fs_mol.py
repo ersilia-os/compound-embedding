@@ -10,6 +10,7 @@ from typing import Callable, Dict, Iterable, Any, List, Optional
 from groverfeat import Featurizer
 from joblib import cpu_count, delayed, Parallel
 from mordred import Calculator, descriptors
+import numpy as np
 from rdkit import Chem
 from tqdm import tqdm
 
@@ -72,9 +73,9 @@ def write_jsonl_gz_data(file_name: str, data: Iterable[Dict[str, Any]], len_data
 def save_element(element: Dict[str, Any], data_fh) -> None:
     ele = dict(element)
     if "grover" in ele:
-        ele["grover"] = ele["grover"].tolist()
+        ele["grover"] = [str(e) for e in np.array(ele["grover"], dtype=np.float16).tolist()]
     if "mordred" in ele:
-        ele["mordred"] = ele["mordred"].tolist()
+        ele["mordred"] = [str(e) for e in np.array(ele["mordred"], dtype=np.float16).tolist()]
     data_fh.write(json.dumps(ele) + "\n")
 
 
