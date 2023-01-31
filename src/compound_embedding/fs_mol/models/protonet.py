@@ -10,7 +10,7 @@ from compound_embedding.fs_mol.data.protonet import ProtoNetBatch
 
 GROVER_EMBEDDING_DIM = 5000
 FINGERPRINT_DIM = 2048
-MORDRED_DESCRIPTORS_DIM = 1826
+MORDRED_DESCRIPTORS_DIM = 1379
 
 
 @dataclass(frozen=True)
@@ -47,7 +47,7 @@ class PrototypicalNetwork(nn.Module):
                 fc_in_dim += MORDRED_DESCRIPTORS_DIM
 
             self.fc = nn.Sequential(
-                # fc_dim_full = 8874
+                # fc_dim_full = 8472
                 nn.Linear(fc_in_dim, 4096),
                 nn.ReLU(),
                 nn.Linear(4096, 2048),
