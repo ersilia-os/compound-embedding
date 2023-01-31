@@ -9,11 +9,10 @@ from joblib import cpu_count
 
 from compound_embedding.cli.generate import gen
 from compound_embedding.cli.train import train
-from compound_embedding.pipelines.common import parallel_on_generic
+from compound_embedding.pipelines.common import get_all_paths, parallel_on_generic
 from compound_embedding.pipelines.data_qc import (
     check_mol_counts,
     fix_corrupted_files,
-    get_all_paths,
     remove_part_files,
 )
 
@@ -39,6 +38,7 @@ def qc(inp: str, out: str, seq: bool, fix: bool, jobs: int) -> None:
         corrupted_file_paths = list(chain.from_iterable(corrupted_file_paths))
 
     if fix:
+        print(f"Found {len(corrupted_file_paths)} to fix.")
         # delete part files
         remove_part_files(Path(out))
 
