@@ -9,12 +9,15 @@ from groverfeat import Featurizer
 from compound_embedding.pipelines.common import read_as_jsonl, write_jsonl_gz_data
 
 
-def gen_grover_merged_files(task_file_paths: List[Path], output_dir: Path, rm_input: bool = False) -> None:
+def gen_grover_merged_files(
+    task_file_paths: List[Path], output_dir: Path, rm_input: bool = False
+) -> None:
     """Merge fs-mol with grover fingerprints.
 
     Args:
         task_file_paths (List[Path]): List of all tasks.
-        output_dir (Path): Path to save generated files
+        output_dir (Path): Path to save generated files.
+        rm_input (bool): Remove the source file to save space.
     """
     # Ensure dirs are present
     os.makedirs(output_dir, exist_ok=True)
@@ -31,7 +34,6 @@ def gen_grover_merged_files(task_file_paths: List[Path], output_dir: Path, rm_in
         samples = []
         sample_smiles = []
         modified_data = []
-        output_file_path = output_dir.joinpath(*path.parts[-2:])
         for sample in read_as_jsonl(path):
             samples.append(sample)
             sample_smiles.append(sample["SMILES"])

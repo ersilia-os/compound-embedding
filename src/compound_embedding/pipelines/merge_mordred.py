@@ -12,12 +12,17 @@ from rdkit import Chem
 from sklearn.preprocessing import RobustScaler
 from sklearn.feature_selection import VarianceThreshold
 
-from compound_embedding.pipelines.common import get_package_root_path, read_as_jsonl, write_jsonl_gz_data
+from compound_embedding.pipelines.common import (
+    get_package_root_path,
+    read_as_jsonl,
+    write_jsonl_gz_data,
+)
 
 
 # PROCESSING FUNCTIONS
 
 MAX_NA = 0.2
+
 
 class NanFilter(object):
     def __init__(self):
@@ -125,13 +130,14 @@ class VarianceFilter(object):
 
 # MORDRED DESCRIPTORS
 
+
 def mordred_featurizer(smiles):
     calc = Calculator(descriptors, ignore_3D=True)
     df = calc.pandas([Chem.MolFromSmiles(smi) for smi in smiles])
     return df
 
-class MordredDescriptor(object):
 
+class MordredDescriptor(object):
     def __init__(self):
         self.nan_filter = NanFilter()
         self.imputer = Imputer()
@@ -164,12 +170,15 @@ class MordredDescriptor(object):
         return pd.DataFrame(X, columns=self.features)
 
 
-def gen_mordred_merged_files(task_file_paths: List[Path], output_dir: Path, rm_input: bool = False) -> None:
+def gen_mordred_merged_files(
+    task_file_paths: List[Path], output_dir: Path, rm_input: bool = False
+) -> None:
     """Merge fs-mol with mordred descriptors.
 
     Args:
         task_file_paths (List[Path]): List of all tasks.
-        output_dir (Path): Path to save generated files
+        output_dir (Path): Path to save generated files.
+        rm_input (bool): Remove the source file to save space.
     """
     # Ensure dirs are present
     os.makedirs(output_dir, exist_ok=True)
@@ -202,13 +211,15 @@ def gen_mordred_merged_files(task_file_paths: List[Path], output_dir: Path, rm_i
 
         # Update samples with mordred data
         for i, sample in enumerate(samples):
-            sample["mordred"] = mordred_df.iloc[i,].to_numpy()
+            sample["mordred"] = mordred_df.iloc[
+                i,
+            ].to_numpy()
             modified_data.append(sample)
 
         # Write modified files
         write_jsonl_gz_data(output_file_path_temp, modified_data, len(modified_data))
         output_file_path_temp.rename(output_file_path)
-        
+
         # If remove input is True then delete the input files
         if rm_input:
             os.remove(path)

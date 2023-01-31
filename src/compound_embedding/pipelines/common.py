@@ -10,6 +10,7 @@ from joblib import cpu_count, delayed, Parallel
 import numpy as np
 from tqdm import tqdm
 
+
 def get_all_paths(dir_path: Path) -> List[Path]:
     """Get all data file paths.
 
@@ -19,9 +20,10 @@ def get_all_paths(dir_path: Path) -> List[Path]:
     Returns:
         List[Path]: Data file paths.
     """
-    path_gen = Path(dir_path).glob('**/*')
+    path_gen = Path(dir_path).glob("**/*")
     files = [x for x in path_gen if x.is_file()]
     return files
+
 
 def get_package_root_path() -> Path:
     """Get path of the package root.
@@ -32,7 +34,9 @@ def get_package_root_path() -> Path:
     return Path(__file__).parents[1].absolute()
 
 
-def read_as_jsonl(path, error_handling: Optional[Callable[[str, Exception], None]]=None) -> Iterable[Any]:
+def read_as_jsonl(
+    path, error_handling: Optional[Callable[[str, Exception], None]] = None
+) -> Iterable[Any]:
     """
     Iterate through JSONL files. See http://jsonlines.org/ for more.
 
@@ -40,7 +44,7 @@ def read_as_jsonl(path, error_handling: Optional[Callable[[str, Exception], None
             over how parse error handling should happen.
     :return: a iterator of the parsed objects of each line.
     """
-    fh = gzip.open(path, mode='rt', encoding='utf-8')
+    fh = gzip.open(path, mode="rt", encoding="utf-8")
     try:
         for line in fh:
             try:
@@ -54,13 +58,15 @@ def read_as_jsonl(path, error_handling: Optional[Callable[[str, Exception], None
         fh.close()
 
 
-def write_jsonl_gz_data(file_name: str, data: Iterable[Dict[str, Any]], len_data: int = None) -> int:
+def write_jsonl_gz_data(
+    file_name: str, data: Iterable[Dict[str, Any]], len_data: int = None
+) -> int:
     """_summary_
 
     Args:
         file_name (str): _description_
         data (Iterable[Dict[str, Any]]): _description_
-        len_data (int, optional): _description_. Defaults to None.
+        len_data (int): _description_. Defaults to None.
 
     Returns:
         int: _description_
@@ -76,19 +82,29 @@ def write_jsonl_gz_data(file_name: str, data: Iterable[Dict[str, Any]], len_data
 def save_element(element: Dict[str, Any], data_fh) -> None:
     ele = dict(element)
     if "grover" in ele:
-        ele["grover"] = [str(e) for e in np.array(ele["grover"], dtype=np.float16).tolist()]
+        ele["grover"] = [
+            str(e) for e in np.array(ele["grover"], dtype=np.float16).tolist()
+        ]
     if "mordred" in ele:
-        ele["mordred"] = [str(e) for e in np.array(ele["mordred"], dtype=np.float16).tolist()]
+        ele["mordred"] = [
+            str(e) for e in np.array(ele["mordred"], dtype=np.float16).tolist()
+        ]
     data_fh.write(json.dumps(ele) + "\n")
 
 
-def parallel_on_generic(generic_iter: Iterable[Any], func: Callable[[List[Path], Any], Any], args: List[Any] = [], jobs: int = None) -> None:
+def parallel_on_generic(
+    generic_iter: Iterable[Any],
+    func: Callable[[List[Path], Any], Any],
+    args: List[Any] = [],
+    jobs: int = None,
+) -> None:
     """Execute function in parallel on multiple threads.
 
     Args:
         generic_iter (Iterable[Any]): A generic iterable to chunk and distribute.
         func (Callable[List[Path], Any]): Processing function.
         args (List[Any]): List of additional args to the processing function.
+        jobs (int): Number of cpu cores to use.
     """
     jobs = jobs or cpu_count()
     generic_iter_len = len(generic_iter)
@@ -98,6 +114,5 @@ def parallel_on_generic(generic_iter: Iterable[Any], func: Callable[[List[Path],
 
     generic_iter_chunks = [generic_iter[s] for s in slices]
     Parallel(n_jobs=jobs)(
-        delayed(func)(chunk, *args)
-        for chunk in tqdm(generic_iter_chunks)
+        delayed(func)(chunk, *args) for chunk in tqdm(generic_iter_chunks)
     )
