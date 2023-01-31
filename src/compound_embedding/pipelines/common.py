@@ -97,7 +97,7 @@ def parallel_on_generic(
     func: Callable[[List[Path], Any], Any],
     args: List[Any] = [],
     jobs: int = None,
-) -> None:
+) -> Any:
     """Execute function in parallel on multiple threads.
 
     Args:
@@ -105,6 +105,9 @@ def parallel_on_generic(
         func (Callable[List[Path], Any]): Processing function.
         args (List[Any]): List of additional args to the processing function.
         jobs (int): Number of cpu cores to use.
+
+    Returns:
+        Any: Return of the worker function.
     """
     jobs = jobs or cpu_count()
     generic_iter_len = len(generic_iter)
@@ -113,6 +116,6 @@ def parallel_on_generic(
         slices.append(slice(i, i + generic_iter_len // jobs))
 
     generic_iter_chunks = [generic_iter[s] for s in slices]
-    Parallel(n_jobs=jobs)(
+    return Parallel(n_jobs=jobs)(
         delayed(func)(chunk, *args) for chunk in tqdm(generic_iter_chunks)
     )
