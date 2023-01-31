@@ -1,15 +1,18 @@
 """Merge Mordred descriptors with FS-Mol."""
 
+import os
+from pathlib import Path
+from typing import List
+
 import joblib
 import pandas as pd
+from mordred import Calculator, descriptors
 import numpy as np
-
+from rdkit import Chem
 from sklearn.preprocessing import RobustScaler
 from sklearn.feature_selection import VarianceThreshold
 
-from rdkit import Chem
-
-from mordred import Calculator, descriptors
+from compound_embedding.pipelines.common import get_package_root_path, read_as_jsonl, write_jsonl_gz_data
 
 
 # PROCESSING FUNCTIONS
@@ -159,3 +162,53 @@ class MordredDescriptor(object):
         X = self.variance_filter.transform(X)
         X = self.scaler.transform(X)
         return pd.DataFrame(X, columns=self.features)
+
+
+def gen_mordred_merged_files(task_file_paths: List[Path], output_dir: Path, rm_input: bool = False) -> None:
+    """Merge fs-mol with mordred descriptors.
+
+    Args:
+        task_file_paths (List[Path]): List of all tasks.
+        output_dir (Path): Path to save generated files
+    """
+    # Ensure dirs are present
+    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(output_dir.joinpath("train"), exist_ok=True)
+    os.makedirs(output_dir.joinpath("test"), exist_ok=True)
+    os.makedirs(output_dir.joinpath("valid"), exist_ok=True)
+    mordred = joblib.load(get_package_root_path() / "mordred_descriptor.joblib")
+    for path in task_file_paths:
+        samples = []
+        sample_smiles = []
+        modified_data = []
+        output_file_path = output_dir.joinpath(*path.parts[-2:])
+        output_file_path_temp = output_file_path.with_suffix(".part")
+        if output_file_path.is_file():
+            print(f"Path: {output_file_path} | Already processed")
+            continue
+        print(f"Processing: {''.join(path.parts[-1:])}")
+        for sample in read_as_jsonl(path):
+            samples.append(sample)
+            sample_smiles.append(sample["SMILES"])
+
+        # Generate mordred descriptors in chunked batches
+        chunks = []
+        mordred_df = pd.DataFrame()
+        for i in range(0, len(sample_smiles), 1000):
+            chunks.append(slice(i, i + 1000))
+        for chunk in chunks:
+            chunk_df = mordred.transform(sample_smiles[chunk])
+            mordred_df = pd.concat([mordred_df, chunk_df])
+
+        # Update samples with mordred data
+        for i, sample in enumerate(samples):
+            sample["mordred"] = mordred_df.iloc[i,].to_numpy()
+            modified_data.append(sample)
+
+        # Write modified files
+        write_jsonl_gz_data(output_file_path_temp, modified_data, len(modified_data))
+        output_file_path_temp.rename(output_file_path)
+        
+        # If remove input is True then delete the input files
+        if rm_input:
+            os.remove(path)
