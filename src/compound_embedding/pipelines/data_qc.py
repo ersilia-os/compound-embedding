@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import List, Literal
+from typing import List
 
 from groverfeat import Featurizer
 import joblib
@@ -65,7 +65,7 @@ def fix_corrupted_files(
     corrupted_files: List[Path],
     input_dir: Path,
     output_dir: Path,
-    pipelines: List[Literal["grover", "mordred"]],
+    pipelines: List[str],
     rm_input: bool = False,
 ) -> None:
     """Fix corrupted files.
@@ -74,7 +74,7 @@ def fix_corrupted_files(
         corrupted_files (List[Path]): Corrupted file paths.
         input_dir (Path): Directory containing source files.
         output_dir (Path): Directory containing corrupted files.
-        pipelines (List[Literal["grover", "mordred"]]): Pipelines to run to fix corrupted files.
+        pipelines (List[str]): Pipelines to run to fix corrupted files.
         rm_input (bool): Remove the source file to save space.
     """
     mordred = joblib.load(get_package_root_path() / "mordred_descriptor.joblib")
