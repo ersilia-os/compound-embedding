@@ -107,6 +107,40 @@ def protonet(
     model_trainer.train_loop(out_dir, dataset, device)
 
 
+@click.command()
+@click.option(
+    "--save_dir", type=str, help="Directory to save model and run info.", required=True
+)
+@click.option("--data_dir", type=str, help="Dataset directory.", required=True)
+@click.option(
+    "--batch_size", type=int, default=256, help="Number of examples per batch."
+)
+@click.option(
+    "--num_train_steps", type=int, default=10000, help="Number of training steps."
+)
+@click.option("--lr", type=float, default=0.0001, help="Learning rate")
+@click.option("--seed", type=int, help="Set random seed.", default=42)
+def efp(
+    save_dir: str,
+    data_dir: str,
+    batch_size: int,
+    num_train_steps: int,
+    lr: float,
+    seed: int,
+) -> None:
+    set_seed(seed, True, False)
+    # load dataset
+
+    run_name = f"FSMol_protonet_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
+    out_dir = Path(save_dir).joinpath(run_name)
+    os.makedirs(out_dir, exist_ok=True)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = {}
+    model.to(device)
+    model.train()
+
+
 @click.group()
 def train() -> None:
     """Train model commands."""
@@ -114,3 +148,4 @@ def train() -> None:
 
 
 train.add_command(protonet)
+train.add_command(efp)
