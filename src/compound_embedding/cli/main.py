@@ -44,14 +44,12 @@ def qc(inp: str, out: str, seq: bool, fix: bool, jobs: int) -> None:
 
         # fix corrupted files by re running pipeline for them
         if seq:
-            fix_corrupted_files(
-                corrupted_file_paths, Path(inp), Path(out), ["grover", "mordred"]
-            )
+            fix_corrupted_files(corrupted_file_paths, Path(inp), ["grover", "mordred"])
         else:
             parallel_on_generic(
                 corrupted_file_paths,
                 fix_corrupted_files,
-                [Path(out), Path(out), ["grover", "mordred"]],
+                [Path(out), ["grover", "mordred"]],
                 jobs,
             )
             return

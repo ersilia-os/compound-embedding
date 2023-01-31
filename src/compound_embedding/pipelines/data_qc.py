@@ -35,15 +35,15 @@ def check_mol_counts(in_files: List[Path], out_path: Path) -> List[Path]:
                     out_samples.append(sample["SMILES"])
 
                 if in_samples != out_samples:
-                    corrupted_files.append("/".join(path.parts[-2:]))
+                    corrupted_files.append(output_file_path)
                     print(f"Found corrupted sample: {'/'.join(path.parts[-2:])}")
             except Exception as e:
                 print(e)
-                corrupted_files.append("/".join(path.parts[-2:]))
+                corrupted_files.append(output_file_path)
                 print(f"Found corrupted sample: {'/'.join(path.parts[-2:])}")
 
         else:
-            corrupted_files.append("/".join(path.parts[-2:]))
+            corrupted_files.append(output_file_path)
             print(f"Found corrupted sample: {'/'.join(path.parts[-2:])}")
 
     return corrupted_files
@@ -64,7 +64,6 @@ def remove_part_files(in_dir: List[Path]) -> None:
 def fix_corrupted_files(
     corrupted_files: List[Path],
     input_dir: Path,
-    output_dir: Path,
     pipelines: List[str],
     rm_input: bool = False,
 ) -> None:
@@ -73,7 +72,6 @@ def fix_corrupted_files(
     Args:
         corrupted_files (List[Path]): Corrupted file paths.
         input_dir (Path): Directory containing source files.
-        output_dir (Path): Directory containing corrupted files.
         pipelines (List[str]): Pipelines to run to fix corrupted files.
         rm_input (bool): Remove the source file to save space.
     """
@@ -81,14 +79,15 @@ def fix_corrupted_files(
     grover_model = Featurizer()
 
     for path in corrupted_files:
-        output_file_path = output_dir.joinpath(*path.parts[-2:])
+        input_file_path = input_dir.joinpath(*path.parts[-2:])
+        output_file_path = path
         output_file_path_temp = output_file_path.with_suffix(".part")
         samples = []
         sample_smiles = []
         modified_data = []
 
         # Read samples from the source file
-        for sample in read_as_jsonl(path):
+        for sample in read_as_jsonl(input_file_path):
             samples.append(sample)
             sample_smiles.append(sample["SMILES"])
 
