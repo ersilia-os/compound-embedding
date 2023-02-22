@@ -32,5 +32,5 @@ class ErsiliaCompoundEmbeddings:
         """
         # Convert smiles to morgan
         morgan = smiles_to_morgan(smiles)
-        output = self.session.run(["embeddings_list"], {"smiles_list": morgan})
+        output = self.session.run(["embeddings_list"], {"smiles_list": np.asarray(morgan, dtype=np.float32)})
         return output
