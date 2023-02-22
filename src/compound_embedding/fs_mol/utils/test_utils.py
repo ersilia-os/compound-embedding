@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class FSMolTaskSampleEvalResults(BinaryEvalMetrics):
     task_name: str
+    task_loss: float
     seed: int
     num_train: int
     num_test: int
@@ -231,11 +232,12 @@ def eval_model(
                         logger.debug("Sampling error: " + str(e))
                         continue
 
-                    test_metrics = test_model_fn(task_sample, temp_out_folder, local_seed)
+                    test_metrics, test_loss = test_model_fn(task_sample, temp_out_folder, local_seed)
 
                     test_results.append(
                         FSMolTaskSampleEvalResults(
                             task_name=task.name,
+                            task_loss=test_loss,
                             seed=local_seed,
                             num_train=train_size,
                             num_test=len(task_sample.test_samples),
