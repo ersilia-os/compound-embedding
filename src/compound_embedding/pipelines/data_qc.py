@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 from groverfeat import Featurizer
 import joblib
@@ -16,9 +16,12 @@ from compound_embedding.pipelines.common import (
 )
 
 
-def check_mol_counts(in_files: List[Path], out_path: Path) -> List[Path]:
+def check_mol_counts(
+    in_files: List[Path], out_path: Path
+) -> Tuple[List[Path], List[str]]:
     print(f"Number of input files found: {len(in_files)}")
     corrupted_files = []
+    corrupt_reasons = []
     for path in tqdm(in_files, total=len(in_files)):
         output_file_path = out_path.joinpath(*path.parts[-2:])
         if output_file_path.is_file():
@@ -34,19 +37,22 @@ def check_mol_counts(in_files: List[Path], out_path: Path) -> List[Path]:
                 for sample in read_as_jsonl(output_file_path):
                     out_samples.append(sample["SMILES"])
 
-                if in_samples != out_samples:
+                if in_samples == out_samples:
+                    continue
+                else:
                     corrupted_files.append(output_file_path)
-                    print(f"Found corrupted sample: {'/'.join(path.parts[-2:])}")
-            except Exception as e:
-                print(e)
+                    corrupt_reasons.append("UNMATCHED")
+
+            except Exception:
+                # print(e)
                 corrupted_files.append(output_file_path)
-                print(f"Found corrupted sample: {'/'.join(path.parts[-2:])}")
+                corrupt_reasons.append("CORRUPT")
 
         else:
             corrupted_files.append(output_file_path)
-            print(f"Found corrupted sample: {'/'.join(path.parts[-2:])}")
+            corrupt_reasons.append("NOT_FOUND")
 
-    return corrupted_files
+    return corrupted_files, corrupt_reasons
 
 
 def remove_part_files(in_dir: List[Path]) -> None:
@@ -84,14 +90,13 @@ def fix_corrupted_files(
         output_file_path_temp = output_file_path.with_suffix(".part")
         samples = []
         sample_smiles = []
-        modified_data = []
-
         # Read samples from the source file
         for sample in read_as_jsonl(input_file_path):
             samples.append(sample)
             sample_smiles.append(sample["SMILES"])
 
         if "grover" in pipelines:
+            modified_data = []
             # Generate grover fingerprints in batch
             grover_fps = grover_model.transform(sample_smiles)
 
@@ -100,8 +105,11 @@ def fix_corrupted_files(
                 sample["grover"] = grover_fps[i]
                 modified_data.append(sample)
 
+            samples = modified_data
+
         if "mordred" in pipelines:
             # Generate mordred descriptors in chunked batches
+            modified_data = []
             chunks = []
             mordred_df = pd.DataFrame()
             for i in range(0, len(sample_smiles), 1000):
@@ -117,10 +125,15 @@ def fix_corrupted_files(
                 ].to_numpy()
                 modified_data.append(sample)
 
+            samples = modified_data
+
         # Write modified files
-        write_jsonl_gz_data(output_file_path_temp, modified_data, len(modified_data))
-        output_file_path_temp.rename(output_file_path)
+        print(f"Writing file to {output_file_path_temp}")
+        write_jsonl_gz_data(output_file_path_temp, samples, len(modified_data))
+        print(f"Renaming file to {output_file_path}")
+        os.rename(output_file_path_temp, output_file_path)
 
         # If remove input is True then delete the input files
         if rm_input:
-            os.remove(path)
+            print(f"Removing original file: {input_file_path}")
+            os.remove(input_file_path)
