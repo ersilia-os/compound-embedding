@@ -13,7 +13,7 @@ def get_package_root_path() -> Path:
     Returns:
         Path: Package root path
     """
-    return Path(__file__).parents[1].absolute()
+    return Path(__file__).parent.absolute()
 
 def smiles_to_morgan(smiles: List[str]) -> List[np.ndarray]:
     """Convert smiles to Morgan fingerprints."""
