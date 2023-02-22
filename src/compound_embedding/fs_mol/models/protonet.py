@@ -34,6 +34,7 @@ class PrototypicalNetwork(nn.Module):
         self.config = config
 
         self.use_fc = self.config.used_features.endswith("+fc")
+        print(f"Features used: {self.config.used_features}")
 
         # Create MLP if needed:
         if self.use_fc:
@@ -45,7 +46,6 @@ class PrototypicalNetwork(nn.Module):
                 fc_in_dim += FINGERPRINT_DIM
             if "mordred" in self.config.used_features:
                 fc_in_dim += MORDRED_DESCRIPTORS_DIM
-
             self.fc = nn.Sequential(
                 # fc_dim_full = 8472
                 nn.Linear(fc_in_dim, 4096),
