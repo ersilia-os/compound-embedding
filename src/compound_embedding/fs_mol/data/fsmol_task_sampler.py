@@ -30,7 +30,12 @@ class SamplingException(Exception):
 
 class DatasetTooSmallException(SamplingException):
     def __init__(
-        self, task_name: str, num_samples: int, num_train: int, num_valid: int, num_test: int
+        self,
+        task_name: str,
+        num_samples: int,
+        num_train: int,
+        num_valid: int,
+        num_test: int,
     ):
         super().__init__(task_name, num_samples, num_train, num_valid, num_test)
 
@@ -339,13 +344,17 @@ class StratifiedTaskSampler(TaskSampler):
         num_pos_samples = len(pos_samples)
         num_samples = num_neg_samples + num_pos_samples
         samples = neg_samples + pos_samples
-        labels = np.concatenate((np.zeros(num_neg_samples), np.ones(num_pos_samples)), axis=0)
+        labels = np.concatenate(
+            (np.zeros(num_neg_samples), np.ones(num_pos_samples)), axis=0
+        )
         indices = np.arange(num_samples)
 
         if isinstance(self._train_size_or_ratio, int):
             possible_test_size = num_samples - self._train_size_or_ratio
         else:
-            possible_test_size = num_samples - int(num_samples * self._train_size_or_ratio)
+            possible_test_size = num_samples - int(
+                num_samples * self._train_size_or_ratio
+            )
 
         if self._test_size_or_ratio is None:
             num_test = possible_test_size
@@ -369,9 +378,14 @@ class StratifiedTaskSampler(TaskSampler):
                 num_test=num_test,
             )
         train_test_splitter_obj = StratifiedShuffleSplit(
-            n_splits=1, train_size=self._train_size_or_ratio, test_size=num_test, random_state=seed
+            n_splits=1,
+            train_size=self._train_size_or_ratio,
+            test_size=num_test,
+            random_state=seed,
         )
-        train_valid_idxs, test_idxs = next(iter(train_test_splitter_obj.split(X=indices, y=labels)))
+        train_valid_idxs, test_idxs = next(
+            iter(train_test_splitter_obj.split(X=indices, y=labels))
+        )
 
         train_valid_samples = [samples[i] for i in train_valid_idxs]
         test_samples = [samples[i] for i in test_idxs]

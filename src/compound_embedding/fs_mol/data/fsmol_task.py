@@ -133,13 +133,13 @@ class FSMolTask:
 
             grover = raw_sample.get("grover")
             if grover is not None:
-                grover: Optional[np.ndarray] = np.array(grover, dtype=np.float16)
+                grover: Optional[np.ndarray] = np.array(grover, dtype=np.float32)
             else:
                 grover = None
 
             mordred = raw_sample.get("mordred")
             if mordred is not None:
-                mordred: Optional[np.ndarray] = np.array(mordred, dtype=np.float16)
+                mordred: Optional[np.ndarray] = np.array(mordred, dtype=np.float32)
             else:
                 mordred = None
 

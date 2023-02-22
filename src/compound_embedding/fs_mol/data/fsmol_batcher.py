@@ -80,7 +80,9 @@ def fsmol_batch_finalizer(batch_data: Dict[str, Any]) -> FSMolBatch:
             edge_features.append(np.concatenate(edge_feats, axis=0))
         else:
             edge_features.append(
-                np.zeros(shape=(adjacency_lists[edge_type_idx].shape[0], 0), dtype=np.float32)
+                np.zeros(
+                    shape=(adjacency_lists[edge_type_idx].shape[0], 0), dtype=np.float32
+                )
             )
 
     return FSMolBatch(
@@ -129,7 +131,9 @@ class FSMolBatcher(Generic[BatchFeatureType, BatchLabelType]):
         ] = None,
     ):
         if not (
-            max_num_graphs is not None or max_num_nodes is not None or max_num_edges is not None
+            max_num_graphs is not None
+            or max_num_nodes is not None
+            or max_num_edges is not None
         ):
             raise ValueError(
                 "Need to specify at least one of max_num_graphs, max_num_nodes or max_num_edges!"
@@ -178,7 +182,9 @@ class FSMolBatcher(Generic[BatchFeatureType, BatchLabelType]):
 
         for datapoint in datapoints:
             num_nodes = len(datapoint.graph.node_features)
-            num_edges = sum(len(adj_list) for adj_list in datapoint.graph.adjacency_lists)
+            num_edges = sum(
+                len(adj_list) for adj_list in datapoint.graph.adjacency_lists
+            )
 
             # Decide if this batch is full:
             if (
@@ -194,11 +200,15 @@ class FSMolBatcher(Generic[BatchFeatureType, BatchLabelType]):
             # Collect the actual graph information:
             batch_data["node_features"].append(datapoint.graph.node_features)
             for edge_type, adj_list in enumerate(datapoint.graph.adjacency_lists):
-                batch_data["adjacency_lists"][edge_type].append(adj_list + batch_data["num_nodes"])
+                batch_data["adjacency_lists"][edge_type].append(
+                    adj_list + batch_data["num_nodes"]
+                )
             for edge_type, edge_feats in enumerate(datapoint.graph.edge_features):
                 batch_data["edge_features"][edge_type].append(edge_feats)
             batch_data["node_to_graph"].append(
-                np.full(shape=(num_nodes,), fill_value=sample_id_in_batch, dtype=np.int64)
+                np.full(
+                    shape=(num_nodes,), fill_value=sample_id_in_batch, dtype=np.int64
+                )
             )
 
             # Label information:
@@ -214,12 +224,15 @@ class FSMolBatcher(Generic[BatchFeatureType, BatchLabelType]):
             if self._per_datapoint_callback is not None:
                 self._per_datapoint_callback(batch_data, sample_id_in_batch, datapoint)
 
-        if batch_data["num_graphs"] > 1:  # single-element batches are problematic for BatchNorm
+        if (
+            batch_data["num_graphs"] > 1
+        ):  # single-element batches are problematic for BatchNorm
             yield self.__finalize_batch(batch_data)
 
 
 class FSMolBatchIterable(
-    Iterable[Tuple[BatchFeatureType, BatchLabelType]], Generic[BatchFeatureType, BatchLabelType]
+    Iterable[Tuple[BatchFeatureType, BatchLabelType]],
+    Generic[BatchFeatureType, BatchLabelType],
 ):
     def __init__(
         self,
