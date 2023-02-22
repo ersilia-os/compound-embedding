@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import joblib
 import pandas as pd
@@ -131,9 +131,9 @@ class VarianceFilter(object):
 # MORDRED DESCRIPTORS
 
 
-def mordred_featurizer(smiles):
+def mordred_featurizer(smiles, nproc: Optional[int] = None):
     calc = Calculator(descriptors, ignore_3D=True)
-    df = calc.pandas([Chem.MolFromSmiles(smi) for smi in smiles])
+    df = calc.pandas([Chem.MolFromSmiles(smi) for smi in smiles], nproc=nproc)
     return df
 
 
@@ -160,8 +160,8 @@ class MordredDescriptor(object):
         self.features = [self.features[i] for i in self.variance_filter.col_idxs]
         return pd.DataFrame(X, columns=self.features)
 
-    def transform(self, smiles):
-        df = mordred_featurizer(smiles)
+    def transform(self, smiles, nproc: Optional[int] = None):
+        df = mordred_featurizer(smiles, nproc=nproc)
         X = np.array(df, dtype=np.float32)
         X = self.nan_filter.transform(X)
         X = self.imputer.transform(X)
