@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
+from tqdm import tqdm
 from pyprojroot import here as project_root
 
 from compound_embedding.fs_mol.data import FSMolDataset, FSMolTaskSample, DataFold
@@ -122,7 +123,7 @@ def evaluate_protonet_model(
             task_sample_to_pn_task_sample(task_sample, batcher), device=model.device
         )
 
-        _, result_metrics = run_on_batches(
+        result_loss, result_metrics = run_on_batches(
             model,
             batches=pn_task_sample.batches,
             batch_labels=pn_task_sample.batch_labels,
@@ -135,7 +136,7 @@ def evaluate_protonet_model(
             f" Avg. prec. {result_metrics.avg_precision:.5f}.",
         )
 
-        return result_metrics
+        return result_metrics, result_loss
 
     return eval_model(
         test_model_fn=test_model_fn,
@@ -174,12 +175,15 @@ def validate_by_finetuning_on_tasks(
     )
 
     # take the dictionary of task_results and return correct mean over all tasks
+    mean_loss = np.mean(
+        [sample.task_loss for _, result in task_results.items() for sample in result]
+    )
     mean_metrics = avg_metrics_over_tasks(task_results)
     if aml_run is not None:
         for metric_name, (metric_mean, _) in mean_metrics.items():
             aml_run.log(f"valid_task_test_{metric_name}", float(metric_mean))
 
-    return mean_metrics[metric_to_use][0]
+    return mean_metrics[metric_to_use][0], mean_metrics, mean_loss
 
 
 class PrototypicalNetworkTrainer(PrototypicalNetwork):
@@ -275,15 +279,20 @@ class PrototypicalNetworkTrainer(PrototypicalNetwork):
             log_fn=lambda msg: logger.info(msg),
             aml_run=aml_run,
             window_size=max(10, self.config.validate_every_num_steps / 5),
+            out_dir=out_dir,
         )
 
-        for step in range(1, self.config.num_train_steps + 1):
+        for step in tqdm(
+            range(1, self.config.num_train_steps + 1), total=self.config.num_train_steps
+        ):
             torch.set_grad_enabled(True)
             self.optimizer.zero_grad()
 
             task_batch_losses: List[float] = []
             task_batch_metrics: List[BinaryEvalMetrics] = []
-            for _ in range(self.config.tasks_per_batch):
+            for _ in tqdm(
+                range(self.config.tasks_per_batch), total=self.config.tasks_per_batch
+            ):
                 task_sample = next(train_task_sample_iterator)
                 train_task_sample = torchify(task_sample, device=device)
                 task_loss, task_metrics = run_on_batches(
@@ -295,7 +304,7 @@ class PrototypicalNetworkTrainer(PrototypicalNetwork):
                 )
                 task_batch_losses.append(task_loss)
                 task_batch_metrics.append(task_metrics)
-
+            # print("Doing a train step")
             # Now do a training step - run_on_batches will have accumulated gradients
             if self.config.clip_value is not None:
                 torch.nn.utils.clip_grad_norm_(
@@ -304,7 +313,7 @@ class PrototypicalNetworkTrainer(PrototypicalNetwork):
             self.optimizer.step()
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
-
+            # print("Step competed")
             task_batch_mean_loss = np.mean(task_batch_losses)
             task_batch_avg_metrics = avg_task_metrics_list(task_batch_metrics)
             metric_logger.log_metrics(
@@ -312,12 +321,17 @@ class PrototypicalNetworkTrainer(PrototypicalNetwork):
                 avg_prec=task_batch_avg_metrics["avg_precision"][0],
                 kappa=task_batch_avg_metrics["kappa"][0],
                 acc=task_batch_avg_metrics["acc"][0],
+                avg_prec_std=task_batch_avg_metrics["avg_precision"][1],
+                kappa_std=task_batch_avg_metrics["kappa"][1],
+                acc_std=task_batch_avg_metrics["acc"][1],
             )
 
             if step % self.config.validate_every_num_steps == 0:
-                valid_metric = validate_by_finetuning_on_tasks(
-                    self, dataset, aml_run=aml_run
-                )
+                (
+                    valid_metric,
+                    mean_valid_metric,
+                    mean_valid_loss,
+                ) = validate_by_finetuning_on_tasks(self, dataset, aml_run=aml_run)
 
                 if aml_run:
                     # printing some measure of loss on all validation tasks.
@@ -326,6 +340,18 @@ class PrototypicalNetworkTrainer(PrototypicalNetwork):
                 logger.info(
                     f"Validated at train step [{step}/{self.config.num_train_steps}],"
                     f" Valid Avg. Prec.: {valid_metric:.3f}",
+                )
+
+                # log to tensorboard
+                metric_logger.log_metrics(
+                    val=True,
+                    loss=mean_valid_loss,
+                    avg_prec=mean_valid_metric["avg_precision"][0],
+                    kappa=mean_valid_metric["kappa"][0],
+                    acc=mean_valid_metric["acc"][0],
+                    avg_prec_std=mean_valid_metric["avg_precision"][1],
+                    kappa_std=mean_valid_metric["kappa"][1],
+                    acc_std=mean_valid_metric["acc"][1],
                 )
 
                 # save model if validation avg prec is the best so far
