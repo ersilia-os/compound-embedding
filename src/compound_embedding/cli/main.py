@@ -3,8 +3,6 @@
 import csv
 from itertools import chain
 from pathlib import Path
-import os
-import sys
 
 import click
 import joblib
@@ -38,7 +36,9 @@ def qc(inp: str, out: str, seq: bool, fix: bool, jobs: int) -> None:
         file_paths = get_all_paths(Path(inp))
         print(f"Number of input files found: {len(file_paths)}")
         if seq:
-            corrupted_file_paths, corrupted_file_reasons = check_mol_counts(file_paths, Path(out))
+            corrupted_file_paths, corrupted_file_reasons = check_mol_counts(
+                file_paths, Path(out)
+            )
         else:
             worker_out = parallel_on_generic(
                 file_paths, check_mol_counts, [Path(out)], cpu_count()
@@ -48,8 +48,10 @@ def qc(inp: str, out: str, seq: bool, fix: bool, jobs: int) -> None:
             corrupted_file_paths = list(chain.from_iterable(corrupted_file_paths))
             corrupted_file_reasons = list(chain.from_iterable(corrupted_file_reasons))
             joblib.dump(corrupted_file_paths, Path().joinpath("corrupted_files.joblib"))
-            joblib.dump(corrupted_file_reasons, Path().joinpath("corrupted_file_reasons.joblib"))
-    
+            joblib.dump(
+                corrupted_file_reasons, Path().joinpath("corrupted_file_reasons.joblib")
+            )
+
     if fix:
         print(f"Found {len(corrupted_file_paths)} to fix.")
         # delete part files
@@ -68,7 +70,7 @@ def qc(inp: str, out: str, seq: bool, fix: bool, jobs: int) -> None:
             # Delete dumped corrupted files array
             if saved_corrupted_files_array.is_file():
                 saved_corrupted_files_array.unlink()
-            
+
             # Return early - do not save corrupted files list as csv
             return
 
