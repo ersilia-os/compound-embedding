@@ -19,7 +19,7 @@ class ErsiliaCompoundEmbeddings:
         
         self.providers = ort.get_available_providers()
         print(f"Available providers: {self.providers}")
-        self.session = ort.InferenceSession(onnx_path, provider_options=self.providers)
+        self.session = ort.InferenceSession(str(onnx_path), provider_options=self.providers[0])
 
     def transform(self: "ErsiliaCompoundEmbeddings", smiles: List[str]) -> List[np.ndarray]:
         """Transform smiles to embeddings.
