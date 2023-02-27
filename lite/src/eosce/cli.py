@@ -11,14 +11,15 @@ from eosce.models import ErsiliaCompoundEmbeddings
 
 @click.command()
 @click.option("--debug", is_flag=True, help="Ouput debug logs.")
+@click.option("--grid", is_flag=True, help="Convert embeddings to a grid.")
 @click.option("--out", type=str, help="File path to save results.")
 @click.argument("SMILES", nargs=-1)
-def embed(debug: bool, out: Optional[str], smiles: List[str]) -> None:
+def embed(debug: bool, grid: bool, out: Optional[str], smiles: List[str]) -> None:
     """Generate embeddings."""
     if debug:
         logging.basicConfig(level=logging.DEBUG)
     model = ErsiliaCompoundEmbeddings()
-    embeddings = model.transform(smiles)
+    embeddings = model.transform(smiles, grid)
     if out:
         np.savez_compressed(out, embeddings=embeddings)
     else:
