@@ -119,10 +119,10 @@ def protonet(
 )
 @click.option("--data_file", type=str, help="Dataset hdf5 file.", required=True)
 @click.option(
-    "--batch_size", type=int, default=256, help="Number of examples per batch."
+    "--batch_size", type=int, default=64, help="Number of examples per batch."
 )
 @click.option(
-    "--num_train_steps", type=int, default=10000, help="Number of training steps."
+    "--num_train_steps", type=int, default=4, help="Number of training steps."
 )
 @click.option("--lr", type=float, default=0.0001, help="Learning rate")
 @click.option("--seed", type=int, help="Set random seed.", default=42)

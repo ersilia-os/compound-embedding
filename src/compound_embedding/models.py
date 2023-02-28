@@ -56,11 +56,15 @@ class ErsiliaFingerprint(LightningModule):
         super().__init__()
 
         self.fc = torch.nn.Sequential(
-            torch.nn.Linear(2048, 1706),
+            torch.nn.Linear(2048, 1840),
             torch.nn.ReLU(),
-            torch.nn.Linear(1706, 1365),
+            torch.nn.Linear(1840, 1636),
             torch.nn.ReLU(),
-            torch.nn.Linear(1365, 1024),
+            torch.nn.Linear(1636, 1432),
+            torch.nn.ReLU(),
+            torch.nn.Linear(1432, 1228),
+            torch.nn.ReLU(),
+            torch.nn.Linear(1228, 1024),
         )
 
         metrics = MetricCollection([MeanSquaredError()])
