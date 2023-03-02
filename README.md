@@ -149,6 +149,11 @@ crux train protonet \
 cp path/to/save/trained_model/FSMOL_protonet_{run identifier}/fully_trained.pt ./src/compound_embedding/
 ```
 
+## Download and move reference library to package root
+
+Reference libraray can be downloaded from [here](https://github.com/ersilia-os/groverfeat/tree/main/data).
+Move it to the package root as we did in the last step.
+
 ## Generate training data for Ersilia Compound Embeddings model
 
 ```bash
