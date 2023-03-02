@@ -13,7 +13,14 @@ git clone https://github.com/ersilia-os/compound-embedding.git
 cd compound-embedding/lite
 ```
 
-### 2. Install the package with pip
+### 2. Create a conda environment
+
+```bash
+conda create -n eosce python=3.8
+conda activate eosce
+```
+
+### 3. Install the package with pip
 
 ```bash
 pip install -e .
@@ -25,7 +32,7 @@ or if you have a GPU
 pip install -e .[gpu]
 ```
 
-### 3. Programatically generate embeddings
+### 4. Programatically generate embeddings
 
 ```python
 from eosce.models import ErsiliaCompoundEmbeddings
@@ -33,10 +40,23 @@ model = ErsiliaCompoundEmbeddings()
 embeddings = model.transform(["CCOC(=O)C1=CC2=CC(OC)=CC=C2O1"])
 ```
 
+Run the embed.py file passing the input and output files  #TODO
+```bash
+python embed.py -i inputfile.csv -o outputfile.csv
+```
+
 ### 4. Generate embeddings using the cli
+Pass a single smiles or a list of smiles (in csv format?) #TODO
+
 
 ```bash
 eosce embed "CCOC(=O)C1=CC2=CC(OC)=CC=C2O1"
+```
+
+or  #TODO
+
+```bash
+eosce embed inputfile outputfile
 ```
 
 ## Developing
