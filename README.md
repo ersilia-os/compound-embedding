@@ -143,6 +143,12 @@ crux train protonet \
     --num_train_steps 10000
 ```
 
+## Move fully trained model to package root
+
+```bash
+cp path/to/save/trained_model/FSMOL_protonet_{run identifier}/fully_trained.pt ./src/compound_embedding/
+```
+
 ## Generate training data for Ersilia Compound Embeddings model
 
 ```bash

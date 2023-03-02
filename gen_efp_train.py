@@ -4,13 +4,13 @@ from pathlib import Path
 import joblib
 from mpi4py import MPI
 
-from compound_embedding.pipelines.gen_dataset import gen_training_data
+from compound_embedding.pipelines.gen_dataset import gen_training_data, get_package_root_path
 
 
 comm = MPI.COMM_WORLD
 rank = MPI.COMM_WORLD.Get_rank()
 
-ref_lib = Path(__file__).parent.joinpath("reference_library.csv")
+ref_lib = get_package_root_path.joinpath("reference_library.csv")
 with open(ref_lib) as f:
     file = csv.reader(f)
     smiles_list = [line[0] for line in file]
