@@ -17,6 +17,7 @@ from eosce.models import ErsiliaCompoundEmbeddings
 @click.option("--grid", is_flag=True, help="Convert embeddings to a grid.")
 @click.option("-i", "--inp", type=str, help="CSV path to read input.")
 @click.option(
+    "-o",
     "--out",
     type=str,
     help="File path to save results. Extension of the file is used to select the output format.",
