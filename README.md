@@ -46,17 +46,27 @@ python embed.py -i inputfile.csv -o outputfile.csv
 ```
 
 ### 4. Generate embeddings using the cli
-Pass a single smiles or a list of smiles (in csv format?) #TODO
-
+For a single smiles:
 
 ```bash
-eosce embed "CCOC(=O)C1=CC2=CC(OC)=CC=C2O1"
+eosce embed "CCOC(=O)C1=CC2=CC(OC)=CC=C2O1" 
 ```
 
-or  #TODO
+or, to save the results in a .csv file:
 
 ```bash
-eosce embed inputfile outputfile
+eosce embed "CCOC(=O)C1=CC2=CC(OC)=CC=C2O1" -o output.csv
+```
+
+For multiple smiles, pass an input file with a single column as a smiles list. An example is provided in lite/data
+
+```bash
+eosce embed -i data/input.csv  -o /data/output.csv
+```
+
+Get support by running
+```bash
+eosce embed --help
 ```
 
 ## Developing
