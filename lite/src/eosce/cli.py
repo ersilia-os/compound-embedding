@@ -15,7 +15,7 @@ from eosce.models import ErsiliaCompoundEmbeddings
 @click.command()
 @click.option("--debug", is_flag=True, help="Ouput debug logs.")
 @click.option("--grid", is_flag=True, help="Convert embeddings to a grid.")
-@click.option("-i", "--inp", type=str, help="CSV path to read input.")
+@click.option("-i", "--inp", type=str, help="Path to CSV input file. The CSV must contain a single colum of SMILES without header")
 @click.option(
     "-o",
     "--out",
