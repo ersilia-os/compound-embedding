@@ -71,14 +71,15 @@ cd compound-embedding
 ### 2. Create a conda environment and activate it
 
 ```bash
+conda config --set channel_priority flexible
 conda env create -f env.yaml
 conda activate crux
 ```
 
-### 3. Install the project using pip
+### 3. Install Groverfeat library
 
 ```bash
-pip install -e .
+bash install_grover.sh
 ```
 
 ## Project Architecture
