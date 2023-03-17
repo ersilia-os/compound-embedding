@@ -193,7 +193,7 @@ mpiexec -n 4 python gen_efp_train.py
 
 This will create a `efp_training.hdf5` file in the directory where the command is executed.
 
-## Train Ersilia Compund Embeddings model
+## Train Ersilia Compound Embeddings model
 
 ```bash
 crux train efp --save_dir /path/to/save/checkpoints --data_file /path/to/efp_training.hdf5
