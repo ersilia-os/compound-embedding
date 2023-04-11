@@ -35,7 +35,7 @@ pip install -e .[gpu]
 ### 4. Programatically generate embeddings
 
 ```python
-from eosce.models import ErsiliaCompoundEmbeddings
+from eosce import ErsiliaCompoundEmbeddings
 model = ErsiliaCompoundEmbeddings()
 embeddings = model.transform(["CCOC(=O)C1=CC2=CC(OC)=CC=C2O1"])
 
