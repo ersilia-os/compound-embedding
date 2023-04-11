@@ -38,14 +38,13 @@ pip install -e .[gpu]
 from eosce.models import ErsiliaCompoundEmbeddings
 model = ErsiliaCompoundEmbeddings()
 embeddings = model.transform(["CCOC(=O)C1=CC2=CC(OC)=CC=C2O1"])
-```
 
-Run the embed.py file passing the input and output files  #TODO
-```bash
-python embed.py -i inputfile.csv -o outputfile.csv
+# Optionally if you want grid embeddingd
+grid_embeddings = model.transform(["CCOC(=O)C1=CC2=CC(OC)=CC=C2O1"], grid=True)
 ```
 
 ### 4. Generate embeddings using the cli
+
 For a single smiles:
 
 ```bash
@@ -64,7 +63,14 @@ For multiple smiles, pass an input file with a single column as a smiles list. A
 eosce embed -i data/input.csv  -o /data/output.csv
 ```
 
+For grid embedding
+
+```bash
+eosce embed --grid "CCOC(=O)C1=CC2=CC(OC)=CC=C2O1" -o output.csv
+```
+
 Get support by running
+
 ```bash
 eosce embed --help
 ```
@@ -120,6 +126,7 @@ Finally we used the generated training dataset generated in Phase 2 to train a s
 The FS-Mol dataset is available as a download, [FS-Mol Data](https://figshare.com/ndownloader/files/31345321), split into `train`, `valid` and `test` folders. 
 Tasks are stored as individual compressed [JSONLines](https://jsonlines.org/) files, with each line corresponding to the information to a single datapoint for the task.
 Each datapoint is stored as a JSON dictionary, following a fixed structure:
+
 ```json
 {
     "SMILES": "SMILES_STRING",

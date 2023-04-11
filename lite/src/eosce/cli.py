@@ -1,6 +1,7 @@
 """Ersilia embeddings cli."""
 
 import csv
+from itertools import chain
 import logging
 from pathlib import Path
 from typing import List, Optional
@@ -15,7 +16,12 @@ from eosce.models import ErsiliaCompoundEmbeddings
 @click.command()
 @click.option("--debug", is_flag=True, help="Ouput debug logs.")
 @click.option("--grid", is_flag=True, help="Convert embeddings to a grid.")
-@click.option("-i", "--inp", type=str, help="Path to CSV input file. The CSV must contain a single colum of SMILES without header")
+@click.option(
+    "-i",
+    "--inp",
+    type=str,
+    help="Path to CSV input file. The CSV must contain a single colum of SMILES without header",
+)
 @click.option(
     "-o",
     "--out",
@@ -46,6 +52,8 @@ def embed(
             with open(out, "w", newline="") as f:
                 writer = csv.writer(f)
                 for i, row in enumerate(embeddings):
+                    if grid:
+                        row = list(chain.from_iterable(row))
                     writer.writerow([smiles[i], *row])
         elif ext == "npz":
             np.savez_compressed(out, embeddings=embeddings)
