@@ -60,7 +60,7 @@ eosce embed "CCOC(=O)C1=CC2=CC(OC)=CC=C2O1" -o output.csv
 For multiple smiles, pass an input file with a single column as a smiles list. An example is provided in lite/data
 
 ```bash
-eosce embed -i data/input.csv  -o /data/output.csv
+eosce embed -i data/input.csv  -o data/output.csv
 ```
 
 For grid embedding
